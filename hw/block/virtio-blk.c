@@ -45,7 +45,7 @@ static const VirtIOFeature feature_sizes[] = {
     {.flags = 1ULL << VIRTIO_BLK_F_DISCARD,
      .end = endof(struct virtio_blk_config, discard_sector_alignment)},
     {.flags = 1ULL << VIRTIO_BLK_F_WRITE_ZEROES,
-     .end = endof(struct virtio_blk_config, write_zeroes_may_unmap)},
+     .end = endof(struct virtio_blk_config, num_poll_queues)},
     {}
 };
 
@@ -954,6 +954,7 @@ static void virtio_blk_update_config(VirtIODevice *vdev, uint8_t *config)
     blkcfg.alignment_offset = 0;
     blkcfg.wce = blk_enable_write_cache(s->blk);
     virtio_stw_p(vdev, &blkcfg.num_queues, s->conf.num_queues);
+    virtio_stw_p(vdev, &blkcfg.num_poll_queues, s->conf.num_poll_queues);
     if (virtio_has_feature(s->host_features, VIRTIO_BLK_F_DISCARD)) {
         uint32_t discard_granularity = conf->discard_granularity;
         if (discard_granularity == -1 || !s->conf.report_discard_granularity) {
@@ -1158,6 +1159,9 @@ static void virtio_blk_device_realize(DeviceState *dev, Error **errp)
         error_setg(errp, "num-queues property must be larger than 0");
         return;
     }
+    if (conf->num_poll_queues == VIRTIO_BLK_AUTO_NUM_QUEUES) {
+        conf->num_poll_queues = 0;
+    }
     if (conf->queue_size <= 2) {
         error_setg(errp, "invalid queue-size property (%" PRIu16 "), "
                    "must be > 2", conf->queue_size);
@@ -1294,6 +1298,8 @@ static Property virtio_blk_properties[] = {
                     true),
     DEFINE_PROP_UINT16("num-queues", VirtIOBlock, conf.num_queues,
                        VIRTIO_BLK_AUTO_NUM_QUEUES),
+    DEFINE_PROP_UINT16("num-poll-queues", VirtIOBlock, conf.num_poll_queues,
+                        VIRTIO_BLK_AUTO_NUM_QUEUES),
     DEFINE_PROP_UINT16("queue-size", VirtIOBlock, conf.queue_size, 256),
     DEFINE_PROP_BOOL("seg-max-adjust", VirtIOBlock, conf.seg_max_adjust, true),
     DEFINE_PROP_LINK("iothread", VirtIOBlock, conf.iothread, TYPE_IOTHREAD,

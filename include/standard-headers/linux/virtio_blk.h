@@ -117,8 +117,9 @@ struct virtio_blk_config {
 	 * deallocation of one or more of the sectors.
 	 */
 	uint8_t write_zeroes_may_unmap;
+	uint8_t unused1;
 
-	uint8_t unused1[3];
+	__virtio16 num_poll_queues;
 } QEMU_PACKED;
 
 /*
